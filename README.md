@@ -5,6 +5,10 @@ Salut is a simple yet beautiful terminal greeter.
 To use it, simply attach the path of the salut binary to the top of your shell config file.
 Salut will then launch, everytime you open your shell.
 
+<div align="center">
+<img src="screenshot.png" width="500" alt="Salut in action" />
+</div>
+
 ### Installation
 Salut does not come pre-built for any distributions.   
 You have to build it your self.
@@ -37,8 +41,6 @@ By default the following commands are implemented:
 |`ft `  |Opens fastfetch|
 |`bs`   |Starts bash|
 |`bp`   |Opens btop|
-
-![Screenshot of salut](screenshot.png)
 
 ### Configuration
 Salut does not feature a config file. Thus, you have to edit the source code to modify `salut`.
