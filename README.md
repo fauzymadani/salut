@@ -4,6 +4,7 @@
 Salut is a simple yet beautiful terminal greeter.   
 To use it, simply attach the path of the salut binary to the top of your shell config file.
 Salut will then launch, everytime you open your shell.
+
 > ![WARNING]
 > Depending on the shell you are using, this may break scripts or worse, as the application will only close, when `q\n` has been sent to `stdin`.
 
@@ -39,6 +40,8 @@ By default the following commands are implemented:
 |`ft `  |Opens fastfetch|
 |`bs`   |Starts bash|
 |`bp`   |Opens btop|
+
+![screenshot.png](Screenshot of salut in action)
 
 ### Configuration
 Salut does not feature a config file. Thus, you have to edit the source code to modify `salut`.
