@@ -14,6 +14,7 @@
 #include <tuple>
 #include <unistd.h>
 #include <vector>
+#include <termios.h>
 using namespace std;
 
 vector<string> split(string a, char delim) {
@@ -89,6 +90,50 @@ string format_options(vector<tuple<string, string, string, string>> options) {
   return result;
 }
 
+int getch() 
+{ 
+    char ch;
+    struct termios oldattr;
+	struct termios newattr;
+
+    tcgetattr(STDIN_FILENO, &oldattr);
+    newattr = oldattr;
+    newattr.c_lflag &= ~ICANON;
+    newattr.c_lflag &= ~ECHO;
+    newattr.c_cc[VMIN] = 1;
+    newattr.c_cc[VTIME] = 0;
+    tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
+    ch = getchar();
+    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+
+    return ch; 
+}
+
+enum Color {
+	RED,
+	GREEN,
+	YELLOW,
+	BLUE,
+	WHITE
+};
+
+string colorize(string s, Color c) {
+	int code;
+	if (c == RED) {
+		code = 31;
+	} else if (c == GREEN) {
+		code = 32;
+	} else if (c == YELLOW) {
+		code = 33;
+	} else if (c == BLUE) {
+		code = 34;
+	} else if (c == WHITE) {
+		code = 0;
+	}
+
+	return fmt::format("\033[{}m{}\033[0m", code, s);
+}
+
 int main() {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
@@ -99,26 +144,40 @@ int main() {
       "██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗  "
       "\n██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝  "
       "\n╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗\n "
-      "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
+	  "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
 
-  string username = getenv("USER");
-  string pwd = std::filesystem::current_path().string();
-  pwd.replace(0, strlen(getenv("HOME")), "~");
-  string subtitle = fmt::format("  {}     {}", username, pwd);
+  char prefix = ':';
   vector<tuple<string, string, string, string>> options = {
       make_tuple("Neovim", " ", "nv", "nvim"),
       make_tuple("Fastfetch", " ", "ft", "fastfetch"),
       make_tuple("Bash", " ", "bs", "bash"),
       make_tuple("Btop", " ", "bp", "btop"),
   };
+
+  string username = getenv("USER");
+  string pwd = std::filesystem::current_path().string();
+  pwd.replace(0, strlen(getenv("HOME")), "~");
+  string subtitle = fmt::format("  {}     {}", username, pwd);
   string exit_directory;
 
-  std::cout << "\033[33m";
-  string screen = fmt::format("{}\n{}\n{}", center_x(ascii_art, w.ws_col),
-                              center_x(subtitle, w.ws_col),
-                              center_x(format_options(options), w.ws_col));
+  std::cout << "\033[32m";
+  string screen = fmt::format("{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
+								colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col), RED),
+								colorize(center_x(subtitle, w.ws_col), WHITE),
+                              colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
   std::cout << "\033[0m";
+
+  char p = getch();
+  if (p != prefix) {
+	  system("clear");
+	  exit(0);
+  }
+
+  screen = fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
+								colorize(center_x(subtitle, w.ws_col), WHITE),
+                              colorize(center_x(format_options(options), w.ws_col), WHITE));
+  std::cout << center_y(screen, w.ws_row, true);
 
   while (true) {
     std::cout << ":";
