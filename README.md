@@ -15,7 +15,7 @@ You have to build it your self.
 
 1. Clone this repository
 `git clone https://github.com/Wervice/salut`
-2. Compile and run the source code
+2. Compile and run the source code   
 a) Using GCC
 `g++ -o salut main.cpp -lfmt && ./salut`
 b) Using Clang
@@ -29,6 +29,8 @@ Depending on your shell, your config file may be called:
 5. Salut will now launch every time you open a new shell
 
 ### Usage
+To keep salut open, you need to press `:` one time, before you can do anything.
+If you do not press `:`, the splash screen will instantly close at the first key press and leave your default shell.
 Salut uses a command line at the bottom of your terminal for inputs. You do not need to enter the `:` when writing commands.
 You run the programs in the list by entering their corresponding command.
 By default the following commands are implemented:
@@ -45,6 +47,7 @@ By default the following commands are implemented:
 ### Configuration
 Salut does not feature a config file. Thus, you have to edit the source code to modify `salut`.
 To set your own applications, edit the `options` variable in `int main`.
+You can change the `prefix` char using the prefix variable.
 
 ```cpp
 vector<tuple<string, string, string, string>> options = {
