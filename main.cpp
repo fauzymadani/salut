@@ -174,7 +174,7 @@ int main() {
   //	You can add more in the `execlp` down bellow.
   vector<tuple<string, string, string, string>> options = {
       make_tuple("Neovim", " ", "nv", "nvim"),
-      make_tuple("Fastfetch", " ", "ft", "ft"),
+      make_tuple("Fastfetch", " ", "ft", "fastfetch"),
       make_tuple("Zsh", "$ ", "zs", "zsh"),
       make_tuple("Btop", " ", "bp", "btop"),
   };
@@ -228,8 +228,9 @@ int main() {
   std::cout << "\033[0m";
 
   char p = getch();
+  string c_inp;
   if (p != prefix) {
-    quit();
+	quit();
   }
 
   screen =
@@ -277,7 +278,6 @@ int main() {
             fitting.push_back(non_const);
           }
           fitting.push_back(nullptr);
-
           execvp(argv[0].c_str(), fitting.data());
         }
       }
