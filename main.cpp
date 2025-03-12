@@ -1,13 +1,14 @@
 #include "utfcpp-4.0.6/source/utf8/checked.h"
 #include <asm-generic/ioctls.h>
-#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
 #include <fmt/format.h>
+#include <fstream>
 #include <iostream>
+#include <random>
 #include <string>
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -107,7 +108,7 @@ int getch() {
   return ch;
 }
 
-enum Color { RED, GREEN, YELLOW, BLUE, WHITE };
+enum Color { RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE };
 
 string colorize(string s, Color c) {
   int code;
@@ -119,11 +120,33 @@ string colorize(string s, Color c) {
     code = 33;
   } else if (c == BLUE) {
     code = 34;
+  } else if (c == MAGENTA) {
+	  code = 35;
+  } else if (c == CYAN) {
+	  code = 36;
   } else if (c == WHITE) {
     code = 0;
   }
 
   return fmt::format("\033[{}m{}\033[0m", code, s);
+}
+
+void quit() {
+  clear_screen();
+  system("clear");
+  exit(0);
+}
+
+string execute(string s) {
+  char ff[1024 * 1024];
+  string result = "\0";
+  FILE *pr = popen("fastfetch", "r");
+  fgets(ff, sizeof(ff), pr);
+  while (fgets(ff, sizeof(ff), pr) != NULL) {
+    result += ff;
+  }
+  pclose(pr);
+  return result;
 }
 
 int main() {
@@ -155,29 +178,58 @@ int main() {
 
   string username = getenv("USER");
   string pwd = std::filesystem::current_path().string();
+  string hostname;
+  string os_icon;
+  ifstream hostname_file;
+  hostname_file.open("/etc/hostname");
+  getline(hostname_file, hostname);
+  ifstream os_release_file;
+  os_release_file.open("/etc/os-release");
+  string os_release_line;
+  getline(os_release_file, os_release_line);
+  while (split(os_release_line, '=')[0] != "ID") {
+    getline(os_release_file, os_release_line);
+  }
+  string id = split(os_release_line, '=')[1];
+  if (id == "arch") {
+	  os_icon = colorize(" ", BLUE);
+  } else if (id == "debian") {
+	  os_icon = colorize(" ", RED);
+  } else if (id == "ubuntu") {
+	  os_icon = colorize("󰕈 ", YELLOW);
+  } else if (id == "fedora") {
+	  os_icon = colorize(" ", BLUE);
+  } else {
+	  os_icon = colorize(" ", YELLOW);
+  }
+
+  static random_device rd;
+  static mt19937 gen(rd());
+  std::uniform_int_distribution<> dis(0, WHITE);
+  Color rand_color = static_cast<Color>(dis(gen));
+  std::cout << rand();
+
   pwd.replace(0, strlen(getenv("HOME")), "~");
-  string subtitle = fmt::format("  {}     {}", username, pwd);
+  string subtitle = fmt::format("  {}     {}  {}{}", username, pwd, os_icon, hostname);
   string exit_directory;
 
   std::cout << "\033[32m";
   string screen = fmt::format(
-      "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
-      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col),
-               RED),
-      colorize(center_x(subtitle, w.ws_col), WHITE),
+      "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
+      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col), MAGENTA),
+      colorize(center_x(subtitle, w.ws_col + 10), WHITE),
       colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
   std::cout << "\033[0m";
 
   char p = getch();
   if (p != prefix) {
-    system("clear");
-    exit(0);
+    quit();
   }
 
   screen =
-      fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
-                  colorize(center_x(subtitle, w.ws_col), WHITE),
+      fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
+                  colorize(center_x(subtitle, w.ws_col + 10), WHITE),
                   colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
 
@@ -198,8 +250,7 @@ int main() {
                    "\033[31mQuit with\033[0m \t\t\t:q\n";
       std::cout << center_y(center_x(msg, w.ws_col), w.ws_row, true);
     } else if (i == "q") {
-      clear_screen();
-      exit(0);
+      quit();
     } else if (i == "main") {
       std::cout << "\033[33m";
       std::cout << center_y(screen, w.ws_row, true);
@@ -209,13 +260,13 @@ int main() {
         if (get<2>(el) == i) {
           clear_screen();
           std::system("clear");
-		  string v = get<3>(el);
-		  std::vector<string> argv = split(v, ' ');
-		  std::vector<char *> fitting;
-		  for (string arg : argv) {
-			char* non_const = (char*)strdup(arg.c_str());
-			fitting.push_back(non_const);
-		  }
+          string v = get<3>(el);
+          std::vector<string> argv = split(v, ' ');
+          std::vector<char *> fitting;
+          for (string arg : argv) {
+            char *non_const = (char *)strdup(arg.c_str());
+            fitting.push_back(non_const);
+          }
           fitting.push_back(nullptr);
 
           execvp(argv[0].c_str(), fitting.data());
