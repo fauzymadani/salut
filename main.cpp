@@ -10,11 +10,10 @@
 #include <iostream>
 #include <string>
 #include <sys/ioctl.h>
-#include <thread>
+#include <termios.h>
 #include <tuple>
 #include <unistd.h>
 #include <vector>
-#include <termios.h>
 using namespace std;
 
 vector<string> split(string a, char delim) {
@@ -90,48 +89,41 @@ string format_options(vector<tuple<string, string, string, string>> options) {
   return result;
 }
 
-int getch() 
-{ 
-    char ch;
-    struct termios oldattr;
-	struct termios newattr;
+int getch() {
+  char ch;
+  struct termios oldattr;
+  struct termios newattr;
 
-    tcgetattr(STDIN_FILENO, &oldattr);
-    newattr = oldattr;
-    newattr.c_lflag &= ~ICANON;
-    newattr.c_lflag &= ~ECHO;
-    newattr.c_cc[VMIN] = 1;
-    newattr.c_cc[VTIME] = 0;
-    tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
-    ch = getchar();
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
+  tcgetattr(STDIN_FILENO, &oldattr);
+  newattr = oldattr;
+  newattr.c_lflag &= ~ICANON;
+  newattr.c_lflag &= ~ECHO;
+  newattr.c_cc[VMIN] = 1;
+  newattr.c_cc[VTIME] = 0;
+  tcsetattr(STDIN_FILENO, TCSANOW, &newattr);
+  ch = getchar();
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
 
-    return ch; 
+  return ch;
 }
 
-enum Color {
-	RED,
-	GREEN,
-	YELLOW,
-	BLUE,
-	WHITE
-};
+enum Color { RED, GREEN, YELLOW, BLUE, WHITE };
 
 string colorize(string s, Color c) {
-	int code;
-	if (c == RED) {
-		code = 31;
-	} else if (c == GREEN) {
-		code = 32;
-	} else if (c == YELLOW) {
-		code = 33;
-	} else if (c == BLUE) {
-		code = 34;
-	} else if (c == WHITE) {
-		code = 0;
-	}
+  int code;
+  if (c == RED) {
+    code = 31;
+  } else if (c == GREEN) {
+    code = 32;
+  } else if (c == YELLOW) {
+    code = 33;
+  } else if (c == BLUE) {
+    code = 34;
+  } else if (c == WHITE) {
+    code = 0;
+  }
 
-	return fmt::format("\033[{}m{}\033[0m", code, s);
+  return fmt::format("\033[{}m{}\033[0m", code, s);
 }
 
 int main() {
@@ -144,13 +136,20 @@ int main() {
       "██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗  "
       "\n██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝  "
       "\n╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗\n "
-	  "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
+      "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
 
   char prefix = ':';
+  // Tuple values:
+  // 1) The name of the program/command as it will be displayed
+  // 2) The nerd fonts icon to use for this program
+  // 3) The command you need to enter to run the program
+  // 4) The actual command that will be ran.
+  //	This uses a ' ' seperated string with up to 5 arguments
+  //	You can add more in the `execlp` down bellow.
   vector<tuple<string, string, string, string>> options = {
       make_tuple("Neovim", " ", "nv", "nvim"),
-      make_tuple("Fastfetch", " ", "ft", "fastfetch"),
-      make_tuple("Bash", " ", "bs", "bash"),
+      make_tuple("Fastfetch", " ", "ft", "ft"),
+      make_tuple("Zsh", "$ ", "zs", "zsh"),
       make_tuple("Btop", " ", "bp", "btop"),
   };
 
@@ -161,22 +160,25 @@ int main() {
   string exit_directory;
 
   std::cout << "\033[32m";
-  string screen = fmt::format("{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
-								colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col), RED),
-								colorize(center_x(subtitle, w.ws_col), WHITE),
-                              colorize(center_x(format_options(options), w.ws_col), WHITE));
+  string screen = fmt::format(
+      "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
+      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col),
+               RED),
+      colorize(center_x(subtitle, w.ws_col), WHITE),
+      colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
   std::cout << "\033[0m";
 
   char p = getch();
   if (p != prefix) {
-	  system("clear");
-	  exit(0);
+    system("clear");
+    exit(0);
   }
 
-  screen = fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
-								colorize(center_x(subtitle, w.ws_col), WHITE),
-                              colorize(center_x(format_options(options), w.ws_col), WHITE));
+  screen =
+      fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), YELLOW),
+                  colorize(center_x(subtitle, w.ws_col), WHITE),
+                  colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
 
   while (true) {
@@ -206,10 +208,17 @@ int main() {
       for (tuple<string, string, string, string> el : options) {
         if (get<2>(el) == i) {
           clear_screen();
-			 std::system("clear");
-			 std::this_thread::sleep_for(chrono::milliseconds(200));
-          string v = get<3>(el);
-          execlp(v.c_str(), NULL);
+          std::system("clear");
+		  string v = get<3>(el);
+		  std::vector<string> argv = split(v, ' ');
+		  std::vector<char *> fitting;
+		  for (string arg : argv) {
+			char* non_const = (char*)strdup(arg.c_str());
+			fitting.push_back(non_const);
+		  }
+          fitting.push_back(nullptr);
+
+          execvp(argv[0].c_str(), fitting.data());
         }
       }
     }
