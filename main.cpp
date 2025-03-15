@@ -141,17 +141,6 @@ void quit() {
   exit(0);
 }
 
-string execute(string s) {
-  char ff[1024 * 1024];
-  string result = "\0";
-  FILE *pr = popen("fastfetch", "r");
-  while (fgets(ff, sizeof(ff), pr) != NULL) {
-    result += ff;
-  }
-  pclose(pr);
-  return result;
-}
-
 int main() {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
