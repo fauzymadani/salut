@@ -133,7 +133,11 @@ string colorize(string s, Color c) {
 
 void quit() {
   clear_screen();
-  system("clear");
+  int ret = system("clear");
+  if (ret == -1) {
+    std::cerr << "Error: clear command failed!\n";
+    exit(1);
+  }
   exit(0);
 }
 
@@ -141,7 +145,6 @@ string execute(string s) {
   char ff[1024 * 1024];
   string result = "\0";
   FILE *pr = popen("fastfetch", "r");
-  fgets(ff, sizeof(ff), pr);
   while (fgets(ff, sizeof(ff), pr) != NULL) {
     result += ff;
   }
@@ -199,6 +202,8 @@ int main() {
 	  os_icon = colorize("󰕈 ", YELLOW);
   } else if (id == "fedora") {
 	  os_icon = colorize(" ", BLUE);
+  } else if (id == "nixos") {
+	  os_icon = colorize(" ", BLUE);
   } else {
 	  os_icon = colorize(" ", YELLOW);
   }
@@ -259,7 +264,11 @@ int main() {
       for (tuple<string, string, string, string> el : options) {
         if (get<2>(el) == i) {
           clear_screen();
-          std::system("clear");
+          int ret = std::system("clear");
+	  if (ret == -1) {
+	    std::cerr << "Error: clear command failed!\n";
+	    exit(1);
+	  }
           string v = get<3>(el);
           std::vector<string> argv = split(v, ' ');
           std::vector<char *> fitting;
