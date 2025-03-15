@@ -1,5 +1,6 @@
 # Prerequisites
 *.d
+./salut
 
 # Compiled Object files
 *.slo

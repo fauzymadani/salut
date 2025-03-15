@@ -20,6 +20,9 @@ a) Using GCC
 `g++ -o salut main.cpp -lfmt && ./salut`
 b) Using Clang
 `clang++ -o salut main.cpp -lfmt && ./salut`
+c) If you are on NixOS
+`nix-shell`
+
 3. Copy the executable somewhere else
 I recommend moving the executable into a folder in your `$PATH`, but you can choose any location you like.
 4. Add `salut` binary path to your config file
