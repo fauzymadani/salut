@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <iostream>
+#include <iterator>
 #include <random>
 #include <string>
 #include <sys/ioctl.h>
@@ -121,9 +122,9 @@ string colorize(string s, Color c) {
   } else if (c == BLUE) {
     code = 34;
   } else if (c == MAGENTA) {
-	  code = 35;
+    code = 35;
   } else if (c == CYAN) {
-	  code = 36;
+    code = 36;
   } else if (c == WHITE) {
     code = 0;
   }
@@ -141,9 +142,16 @@ void quit() {
   exit(0);
 }
 
-int main() {
+int main(int argc, char *argv[]) {
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
+
+  bool qt = false;
+  if (argc > 1) {
+    if (strcmp(argv[1], "--quick-tap") == 0) {
+      qt = true;
+    }
+  }
 
   string ascii_art =
       "██╗    ██╗███████╗██╗      ██████╗ ██████╗ ███╗   ███╗███████╗\n██║    "
@@ -154,19 +162,6 @@ int main() {
       "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
 
   char prefix = ':';
-  // Tuple values:
-  // 1) The name of the program/command as it will be displayed
-  // 2) The nerd fonts icon to use for this program
-  // 3) The command you need to enter to run the program
-  // 4) The actual command that will be ran.
-  //	This uses a ' ' seperated string with up to 5 arguments
-  //	You can add more in the `execlp` down bellow.
-  vector<tuple<string, string, string, string>> options = {
-      make_tuple("Neovim", " ", "nv", "nvim"),
-      make_tuple("Fastfetch", " ", "ft", "fastfetch"),
-      make_tuple("Zsh", "$ ", "zs", "zsh"),
-      make_tuple("Btop", " ", "bp", "btop"),
-  };
 
   string username = getenv("USER");
   string pwd = std::filesystem::current_path().string();
@@ -184,54 +179,76 @@ int main() {
   }
   string id = split(os_release_line, '=')[1];
   if (id == "arch") {
-	  os_icon = colorize(" ", BLUE);
+    os_icon = colorize(" ", BLUE);
   } else if (id == "debian") {
-	  os_icon = colorize(" ", RED);
+    os_icon = colorize(" ", RED);
   } else if (id == "ubuntu") {
-	  os_icon = colorize("󰕈 ", YELLOW);
+    os_icon = colorize("󰕈 ", YELLOW);
   } else if (id == "fedora") {
-	  os_icon = colorize(" ", BLUE);
+    os_icon = colorize(" ", BLUE);
   } else if (id == "nixos") {
-	  os_icon = colorize(" ", BLUE);
+    os_icon = colorize(" ", BLUE);
   } else {
-	  os_icon = colorize(" ", YELLOW);
+    os_icon = colorize(" ", YELLOW);
   }
+  // Tuple values:
+  // 1) The name of the program/command as it will be displayed
+  // 2) The nerd fonts icon to use for this program
+  // 3) The command you need to enter to run the program
+  // 4) The actual command that will be ran.
+  //	This uses a ' ' seperated string with up to 5 arguments
+  //	You can add more in the `execlp` down bellow.
+  vector<tuple<string, string, string, string>> options = {
+      make_tuple("Neovim", " ", "nz", "nvim"),
+      make_tuple("Fastfetch", os_icon, "ft", "fastfetch"),
+      make_tuple("Zsh", "$ ", "zs", "zsh"),
+      make_tuple("Btop", " ", "bp", "btop"),
+  };
 
   static random_device rd;
   static mt19937 gen(rd());
   std::uniform_int_distribution<> dis(0, WHITE);
   Color rand_color = static_cast<Color>(dis(gen));
-  std::cout << rand();
 
   pwd.replace(0, strlen(getenv("HOME")), "~");
-  string subtitle = fmt::format("  {}     {}  {}{}", username, pwd, os_icon, hostname);
+  string subtitle = fmt::format("  {}     {}  {}{}", username, pwd,
+                                os_icon, hostname);
   string exit_directory;
 
   std::cout << "\033[32m";
   string screen = fmt::format(
       "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
-      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col), MAGENTA),
+      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col),
+               MAGENTA),
       colorize(center_x(subtitle, w.ws_col + 10), WHITE),
       colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
   std::cout << "\033[0m";
 
-  char p = getch();
-  string c_inp;
-  if (p != prefix) {
-	quit();
+  if (!qt) {
+    char p = getch();
+    string c_inp;
+    if (p != prefix) {
+      quit();
+    }
   }
 
-  screen =
-      fmt::format("{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
-                  colorize(center_x(subtitle, w.ws_col + 10), WHITE),
-                  colorize(center_x(format_options(options), w.ws_col), WHITE));
+  screen = fmt::format(
+      "{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
+      colorize(center_x(subtitle, w.ws_col + 10), WHITE),
+      colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
 
+  bool immediate = qt;
   while (true) {
-    std::cout << ":";
     string i;
-    cin >> i;
+    if (!immediate) {
+	  std::cout << ":";
+      cin >> i;
+    } else {
+      i = getch();
+      immediate = false;
+    }
 
     if (i == "h") {
       clear_screen();
@@ -255,10 +272,10 @@ int main() {
         if (get<2>(el) == i) {
           clear_screen();
           int ret = std::system("clear");
-	  if (ret == -1) {
-	    std::cerr << "Error: clear command failed!\n";
-	    exit(1);
-	  }
+          if (ret == -1) {
+            std::cerr << "Error: clear command failed!\n";
+            exit(1);
+          }
           string v = get<3>(el);
           std::vector<string> argv = split(v, ' ');
           std::vector<char *> fitting;
@@ -270,6 +287,11 @@ int main() {
           execvp(argv[0].c_str(), fitting.data());
         }
       }
+	  if (qt) {
+		clear_screen();
+		system("clear");
+		exit(0);
+	  }
     }
   }
 }
