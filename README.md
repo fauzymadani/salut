@@ -64,6 +64,10 @@ Just copy-'n-paste a line and edit it to create a new link.
 
 Please note, that `salut` will not display links or ascii art if the terminal is to small.
 
+#### Flags
+- `--quick-tap`  
+  When enabled, salut will only listen to one key press before quitting. This way, you can skip the prefix and press a key to immediately launch any command you want.
+
 ### The name
 The name of `salut` comes from the french "salut", which means "Hi".
 It is pronouced without the t in the end.
