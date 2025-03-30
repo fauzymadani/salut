@@ -14,14 +14,22 @@ Salut does not come pre-built for any distributions.
 You have to build it your self.
 
 1. Clone this repository
-`git clone https://github.com/Wervice/salut`
-2. Compile and run the source code   
-a) Using GCC
-`g++ -o salut main.cpp -lfmt && ./salut`
-b) Using Clang
-`clang++ -o salut main.cpp -lfmt && ./salut`
-c) If you are on NixOS
-`nix-shell`
+```bash
+git clone https://github.com/Wervice/salut
+```
+2. Compile and run the source code
+- a) Using GCC
+```bash
+g++ -o salut main.cpp -lfmt && ./salut
+```
+- b) Using Clang
+```bash
+clang++ -o salut main.cpp -lfmt && ./salut
+```
+- c) If you are on NixOS
+```bash
+nix-shell
+```
 
 3. Copy the executable somewhere else
 I recommend moving the executable into a folder in your `$PATH`, but you can choose any location you like.
