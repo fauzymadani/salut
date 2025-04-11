@@ -8,7 +8,6 @@
 #include <fmt/format.h>
 #include <fstream>
 #include <iostream>
-#include <iterator>
 #include <random>
 #include <string>
 #include <sys/ioctl.h>
@@ -143,6 +142,14 @@ void quit() {
 }
 
 int main(int argc, char *argv[]) {
+  // Reported by PhoenixAceVFX in this PR: https://github.com/Wervice/salut/pull/10
+  // and later modified
+  // -------
+  if (getenv("DISPLAY") == nullptr) {
+    return 0;  // Exit silently if running from a display manager
+  }
+  // -------
+  
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
