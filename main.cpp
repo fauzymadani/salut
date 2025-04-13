@@ -202,6 +202,12 @@ int main(int argc, char *argv[]) {
     os_icon = colorize(" ", BLUE);
   } else if (id == "nixos") {
     os_icon = colorize(" ", BLUE);
+  } else if (id == "linuxmint") {
+    os_icon = colorize("󰣭 ", GREEN);
+  } else if (id == "gentoo") {
+    os_icon = colorize(" ", BLUE);
+  } else if (id == "\"endeavouros\"") {
+    os_icon = colorize(" ", BLUE);
   } else {
     os_icon = colorize(" ", YELLOW);
   }
