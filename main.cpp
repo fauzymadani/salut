@@ -15,7 +15,9 @@
 #include <tuple>
 #include <unistd.h>
 #include <vector>
+#include <nlohmann/json.hpp>
 using namespace std;
+using json = nlohmann::json;
 
 vector<string> split(string a, char delim) {
   vector<string> result;
@@ -70,11 +72,40 @@ string center_y(string a, int h, bool fill) {
 
 void clear_screen() { std::cout << "\033[2J\033[1;1H"; }
 
-string format_options(vector<tuple<string, string, string, string>> options) {
+typedef struct {
+  string name;
+  string icon;
+  string shortcut;
+  string command;
+} Program;
+
+Program make_program(string name, string icon, string shortcut, string command) {
+  Program program = {name, icon, shortcut, command}; 
+  return program;
+}
+
+void to_json(json& j, const Program& p) {
+    j = json{
+        {"name", p.name},
+        {"icon", p.icon},
+        {"shortcut", p.shortcut},
+        {"command", p.command}
+    };
+}
+
+vector<Program> parse_config(json config) {
+  vector<Program> programs;
+  for(auto& item: config) {
+    programs.push_back(make_program(item["name"],item["icon"], item["shortcut"], item["command"]));
+  }
+  return programs;
+}
+
+string format_options(vector<Program> options) {
   string result;
   int break_c = 0;
 
-  for (tuple<string, string, string, string> el : options) {
+  for (auto el : options) {
     string break_pad;
     break_c++;
     if (break_c == 2) {
@@ -83,8 +114,8 @@ string format_options(vector<tuple<string, string, string, string>> options) {
     } else {
       break_pad = "\t";
     }
-    result.append(fmt::format("{} {} [:{}]{}", get<1>(el), get<0>(el),
-                              get<2>(el), break_pad));
+    result.append(fmt::format("{} {} [:{}]{}", el.icon, el.name,
+                              el.shortcut, break_pad));
   }
 
   return result;
@@ -141,6 +172,7 @@ void quit() {
   exit(0);
 }
 
+
 int main(int argc, char *argv[]) {
   // Reported by PhoenixAceVFX in this PR: https://github.com/Wervice/salut/pull/10
   // and later modified
@@ -149,7 +181,7 @@ int main(int argc, char *argv[]) {
     return 0;  // Exit silently if running from a display manager
   }
   // -------
-  
+
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
 
@@ -161,16 +193,16 @@ int main(int argc, char *argv[]) {
   }
 
   string ascii_art =
-      "██╗    ██╗███████╗██╗      ██████╗ ██████╗ ███╗   ███╗███████╗\n██║    "
-      "██║██╔════╝██║     ██╔════╝██╔═══██╗████╗ ████║██╔════╝\n██║ █╗ "
-      "██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗  "
-      "\n██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝  "
-      "\n╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗\n "
-      "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
+    "██╗    ██╗███████╗██╗      ██████╗ ██████╗ ███╗   ███╗███████╗\n██║    "
+    "██║██╔════╝██║     ██╔════╝██╔═══██╗████╗ ████║██╔════╝\n██║ █╗ "
+    "██║█████╗  ██║     ██║     ██║   ██║██╔████╔██║█████╗  "
+    "\n██║███╗██║██╔══╝  ██║     ██║     ██║   ██║██║╚██╔╝██║██╔══╝  "
+    "\n╚███╔███╔╝███████╗███████╗╚██████╗╚██████╔╝██║ ╚═╝ ██║███████╗\n "
+    "╚══╝╚══╝ ╚══════╝╚══════╝ ╚═════╝ ╚═════╝ ╚═╝     ╚═╝╚══════╝";
 
   char prefix = ':';
 
-  
+
   string username = getenv("USER") ? getenv("USER") : "unknown";
   string pwd;
   try {
@@ -211,19 +243,43 @@ int main(int argc, char *argv[]) {
   } else {
     os_icon = colorize(" ", YELLOW);
   }
-  // Tuple values:
-  // 1) The name of the program/command as it will be displayed
-  // 2) The nerd fonts icon to use for this program
-  // 3) The command you need to enter to run the program
-  // 4) The actual command that will be ran.
-  //	This uses a ' ' seperated string with up to 5 arguments
-  //	You can add more in the `execlp` down bellow.
-  vector<tuple<string, string, string, string>> options = {
-      make_tuple("Neovim", " ", "nz", "nvim"),
-      make_tuple("Fastfetch", os_icon, "ft", "fastfetch"),
-      make_tuple("Zsh", "$ ", "zs", "zsh"),
-      make_tuple("Btop", " ", "bp", "btop"),
+
+  vector<Program> default_options = {
+    make_program("Neovim", " ", "nz", "nvim"),
+    make_program("Fastfetch", os_icon, "ft", "fastfetch"),
+    make_program("Zsh", "$ ", "zs", "zsh"),
+    make_program("Btop", " ", "bp", "btop"),
   };
+
+  const char* xdg_config = getenv("XDG_CONFIG_HOME");
+  string config_path;
+  if (xdg_config != nullptr) {
+    config_path = string(xdg_config) + "/salut/config.json";
+  } else {
+    config_path = string(getenv("HOME")) + "/.config/salut/config.json";
+  }
+  vector<Program> options;
+  std::filesystem::path config_file_path(config_path);
+
+  if (std::filesystem::exists(config_file_path)) {
+    try {
+      ifstream in_file(config_path);
+      json config = json::parse(in_file);
+      options = parse_config(config);
+    } catch (const exception& e) {
+      cerr << "Error reading config file: " << e.what() << endl;
+      options = default_options;
+    }
+  } else {
+    std::filesystem::path config_dir = config_file_path.parent_path();
+    if (!std::filesystem::exists(config_dir)) {
+      std::filesystem::create_directories(config_dir);
+    }
+    options = default_options;
+    json j = default_options;
+    ofstream out_file(config_path);
+    out_file << j.dump(4);
+  }
 
   static random_device rd;
   static mt19937 gen(rd());
@@ -237,11 +293,11 @@ int main(int argc, char *argv[]) {
 
   std::cout << "\033[32m";
   string screen = fmt::format(
-      "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
-      colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col),
-               MAGENTA),
-      colorize(center_x(subtitle, w.ws_col + 10), WHITE),
-      colorize(center_x(format_options(options), w.ws_col), WHITE));
+    "{}\n{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
+    colorize(center_x(fmt::format("Press {} to keep open", prefix), w.ws_col),
+             MAGENTA),
+    colorize(center_x(subtitle, w.ws_col + 10), WHITE),
+    colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
   std::cout << "\033[0m";
 
@@ -254,16 +310,16 @@ int main(int argc, char *argv[]) {
   }
 
   screen = fmt::format(
-      "{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
-      colorize(center_x(subtitle, w.ws_col + 10), WHITE),
-      colorize(center_x(format_options(options), w.ws_col), WHITE));
+    "{}\n{}\n{}", colorize(center_x(ascii_art, w.ws_col), rand_color),
+    colorize(center_x(subtitle, w.ws_col + 10), WHITE),
+    colorize(center_x(format_options(options), w.ws_col), WHITE));
   std::cout << center_y(screen, w.ws_row, true);
 
   bool immediate = qt;
   while (true) {
     string i;
     if (!immediate) {
-	  std::cout << ":";
+      std::cout << ":";
       cin >> i;
     } else {
       i = getch();
@@ -273,13 +329,13 @@ int main(int argc, char *argv[]) {
     if (i == "h") {
       clear_screen();
       string msg = "Salut (\033[32mfrench: Hi; /saly/\033[0m) is a terminal "
-                   "greeter application\n"
-                   "It provides a clean welome screen when launched and let's "
-                   "you quickly launch\n"
-                   "your most important applications.\n\n"
-                   "\033[31mClose this message with\033[0m \t:main\n"
-                   "\033[31mOpen this message with\033[0m \t:h\n"
-                   "\033[31mQuit with\033[0m \t\t\t:q\n";
+        "greeter application\n"
+        "It provides a clean welome screen when launched and let's "
+        "you quickly launch\n"
+        "your most important applications.\n\n"
+        "\033[31mClose this message with\033[0m \t:main\n"
+        "\033[31mOpen this message with\033[0m \t:h\n"
+        "\033[31mQuit with\033[0m \t\t\t:q\n";
       std::cout << center_y(center_x(msg, w.ws_col), w.ws_row, true);
     } else if (i == "q") {
       quit();
@@ -288,15 +344,15 @@ int main(int argc, char *argv[]) {
       std::cout << center_y(screen, w.ws_row, true);
       std::cout << "\033[0m";
     } else {
-      for (tuple<string, string, string, string> el : options) {
-        if (get<2>(el) == i) {
+      for (auto el : options) {
+        if (el.shortcut == i) {
           clear_screen();
           int ret = std::system("clear");
           if (ret == -1) {
             std::cerr << "Error: clear command failed!\n";
             exit(1);
           }
-          string v = get<3>(el);
+          string v = el.command;
           std::vector<string> argv = split(v, ' ');
           std::vector<char *> fitting;
           for (string arg : argv) {
@@ -307,11 +363,11 @@ int main(int argc, char *argv[]) {
           execvp(argv[0].c_str(), fitting.data());
         }
       }
-	  if (qt) {
-		clear_screen();
-		system("clear");
-		exit(0);
-	  }
+      if (qt) {
+        clear_screen();
+        int ret = system("clear");
+        exit(0);
+      }
     }
   }
 }
