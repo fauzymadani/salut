@@ -20,11 +20,11 @@ git clone https://github.com/Wervice/salut
 2. Compile and run the source code
 - a) Using GCC
 ```bash
-g++ -o salut main.cpp -lfmt && ./salut
+g++ -o salut -O3 main.cpp -lfmt -I./include && ./salut
 ```
 - b) Using Clang
 ```bash
-clang++ -o salut main.cpp -lfmt && ./salut
+clang++ -o salut -O3 main.cpp -lfmt -I./include  && ./salut
 ```
 - c) If you are on NixOS
 ```bash
@@ -56,21 +56,25 @@ By default the following commands are implemented:
 |`bp`   |Opens btop|
 
 ### Configuration
-Salut does not feature a config file. Thus, you have to edit the source code to modify `salut`.
-To set your own applications, edit the `options` variable in `int main`.
-You can change the `prefix` char using the prefix variable.
-
-```cpp
-vector<tuple<string, string, string, string>> options = {
-      make_tuple("Neovim", " ", "nv", "nvim"),
-      make_tuple("Fastfetch", " ", "ft", "fastfetch"),
-      make_tuple("Bash", " ", "bs", "bash"),
-      make_tuple("Btop", " ", "bp", "btop"),
-  };
+Salut is configured using a JSON file located at:
 ```
-Just copy-'n-paste a line and edit it to create a new link.
+~/.config/salut/config.json
+```
+You can set your own applications and preferences by editing this file.
+#### Example format:
 
-Please note, that `salut` will not display links or ascii art if the terminal is to small.
+```jsonc
+{
+"command": "zsh",   // The actual shell command that gets executed
+"icon": "$ ",       // A Nerd Font or ASCII icon shown before the name
+"name": "Zsh",      // Display name shown in the menu
+"shortcut": "zs"    // The key sequence typed to run this program
+},
+```
+Each entry defines an application with a display name, icon, shortcut, and command.
+
+> [!NOTE]
+> salut will not display links or ascii art if the terminal is to small.
 
 #### Flags
 - `--quick-tap`  
