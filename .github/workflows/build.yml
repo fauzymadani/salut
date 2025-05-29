@@ -39,7 +39,7 @@ jobs:
           '
 
       - name: Upload .deb package as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: salut-deb
           path: ./out/salut_*.deb
@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Download built .deb
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: salut-deb
           path: .
