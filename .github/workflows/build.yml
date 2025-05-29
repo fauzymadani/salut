@@ -24,6 +24,7 @@ jobs:
             clang \
             g++ \
             libfmt-dev \
+            nlohmann-json3-dev \
             fakeroot \
             lintian &&
           export DEBFULLNAME="Fauzy Madani" &&
