@@ -31,8 +31,8 @@ jobs:
             VERSION="${GITHUB_REF##*/}" &&
             VERSION="${VERSION#v}" &&
             VERSION="${VERSION:-1.0.0}-1" &&
-            dch --create -v "$VERSION" --package salut --distribution bookworm \
-              "Automated CI build for version $VERSION" &&
+            dch --newversion "$VERSION" --distribution bookworm \
+            "Automated CI build for version $VERSION" &&
             dpkg-buildpackage -us -uc &&
             mkdir -p out &&
             cp ../salut_*.deb out/
